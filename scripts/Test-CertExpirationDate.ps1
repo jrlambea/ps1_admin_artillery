@@ -38,7 +38,7 @@ $certstoExpire  = $certlist | ? { $_.Disposition                   -eq "20 -- Is
                                   [datetime]::Parse($_.NotAfter)   -le $refDate       -And `
                                   [datetime]::Parse($_.NotAfter)   -gt $nowDate       }
 
-if ( $mailAddresses -ne "no" )
+if ( $mailAddresses -ne "no" -And $certstoExpire -ne $null )
 {
 
 	[String]$body = $certstoExpire | Out-String
