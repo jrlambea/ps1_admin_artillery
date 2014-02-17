@@ -1,7 +1,7 @@
 <#
 Author Jose Ramón Lambea
 
-140205 Script for calculate the size of a folder from last
+140205 Script to calculate the size of a folder from last
        TSM backup.
 
 Usage:
