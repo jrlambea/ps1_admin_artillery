@@ -12,8 +12,7 @@ $COUNTER    = 0
     - $true if the function has completed succesfully.
     - false if the function hasn't completed succesfully.
 #>
-Function Connect()
-{
+Function Connect(){
 
     Write-Host "Connecting to... $VCENTER"
     
@@ -26,12 +25,10 @@ Function Connect()
         Return $false
 
     }
-
 }
 
 
-<#
-    Function to shutdown a array of virtual servers, it returns a boolean value:
+<#    Function to shutdown an array of virtual servers, it returns a boolean value:
     - $true if the function has completed succesfully.
     - false if the function hasn't completed succesfully.
 #>
@@ -47,18 +44,18 @@ Function ShutdownVMs($VMS) {
         } else {
             Shutdown-VMGuest $VM -Confirm:$false
 
-            While ( !(( Get-VM $VM ).PowerState -eq "PoweredOff") -and $COUNTER -le $TIMEOUT) {
-                Write-Host "    Server $VM isn't PoweredOff, waiting 30 sec."
-                $COUNTER += 30
-                Sleep 30
-
-            }  
         }
 
     }
+
+    While ( !( Test-Power "PoweredOff" $VMS ) -and $COUNTER -le $TIMEOUT ) {
+        Write-Host "    Servers isn't PoweredOff, waiting 30 sec."
+        $COUNTER += 30
+        Sleep 30
+
+    }  
     
-    if ( $COUNTER -gt $TIMEOUT)
-    {
+    if ( $COUNTER -gt $TIMEOUT){
         
         Write-Host "    The server has not been stopped in time. Now has this situation:"
 
@@ -71,11 +68,30 @@ Function ShutdownVMs($VMS) {
     }
 
     Return $true
-
 }
 
 <#
-    Function to start a array of virtual servers, it returns a boolean value:
+    Function to test if an array of virtual servers has the same power status:
+    - $true if the function has completed succesfully.
+    - false if the function hasn't completed succesfully.
+#>
+Function Test-Power( $Status , $VMS ) {
+
+    $COUNTER = 0
+
+    ForEach ( $VM in $VMS) {
+        if ( ( Get-VM $VM ).PowerState -ne "$Status" ) {
+            Return $false
+
+        }
+
+    }
+
+    Return $true
+}
+
+<#
+    Function to start an array of virtual servers, it returns a boolean value:
     - $true if the function has completed succesfully.
     - false if the function hasn't completed succesfully.
 #>
@@ -84,19 +100,24 @@ Function StartVMs($VMS) {
     $COUNTER = 0
 
     ForEach ( $VM in $VMS) {
-
         Write-Host "[!] Start-VMGuest $VM"
-        Start-VM $VM -Confirm:$false | Out-Null
+        
+        if ( ( Get-VM $VM ).PowerState -eq "PoweredOn" ) {
+            Write-Host "    The server $VM is already PoweredOn."
+        } else {
+            Start-VM $VM -Confirm:$false | Out-Null
 
-        While ( !(( Get-VM $VM ).PowerState -eq "PoweredOn") -and $COUNTER -le $TIMEOUT)
-        {
-            Write-Host "    Server $VM isn't PoweredOn, waiting 30 sec."
-            $COUNTER += 30
-            Sleep 30
         }
 
     }
     
+    While ( !( Test-Power "PoweredOn" $VMS ) -and $COUNTER -le $TIMEOUT ) {
+        Write-Host "    Servers isn't PoweredOn, waiting 30 sec."
+        $COUNTER += 30
+        Sleep 30
+
+    }  
+
     if ( $COUNTER -gt $TIMEOUT) {
 
         Write-Host "    The server has not been started in time. Now has this situation:"
@@ -112,76 +133,99 @@ Function StartVMs($VMS) {
 }
 
 <#
+    Function to start an array of virtual servers, it returns a boolean value:
+    - $true if the function has completed succesfully.
+    - false if the function hasn't completed succesfully.
+#>
+Function RestartVMs($Servers) {
+
+    $COUNTER = 0
+    For ( $i = 0 ; $i -ne $Servers.Length ; $i++ ){
+        Write-Host "[!] Restart-VMGuest ", $Servers[$i]
+        Restart-VMGuest $Servers[$i] -Confirm:$false | Out-null
+
+    }
+
+    While ( ( Test-Port $Servers $SQL_PORT ) -and $COUNTER -le $TIMEOUT ) {
+        Write-Host "    Database listener still active, waiting 30 sec."
+        $COUNTER += 30
+        Sleep 30
+
+    }
+
+    $COUNTER = 0
+    While ( !( Test-Port $Servers $SQL_PORT ) -and $COUNTER -le $TIMEOUT ) {
+        Write-Host "    Database listener isn't active, waiting 30 sec."
+        $COUNTER += 30
+        Sleep 30
+
+    }
+
+    if ( $COUNTER -gt $TIMEOUT) {
+
+        Write-Host "    The server has not been started in time. Now has this situation:"
+
+        ForEach ( $VM in $VMS) {
+            Write-Host (Get-VM $VM | ft Name,PowerState | Out-String)
+            Return $false
+        }
+
+    }
+    
+    Return $true
+}
+
+<#
     Function to test the accessibility of a port, it returns a boolean value:
     - $true if the function has completed succesfully.
     - false if the function hasn't completed succesfully.
 #>
-Function Test-Port( $Server, $PORT ) {
+Function Test-Port( $Server, $SQL_PORT ) {
 
-    $tcpclient = new-Object system.Net.Sockets.TcpClient
+    For ( $i=0 ; $i -ne $Server.Length ; $i++ ) {
+    
+        $tcpclient = new-Object system.Net.Sockets.TcpClient
 
-    Try {
-        $tcpclient.Connect( "$Server", $PORT )
+        Try {
+            $tcpclient.Connect( $Server[$i], $SQL_PORT[$i] )
 
-    } catch {
-        Return $false
+        } catch {
+            Return $false
+
+        }
+
+        $tcpclient.Close()
 
     }
 
-    $tcpclient.Close()
 
     Return $true
 }
 
 
 <#    Main    #>
-if ( Connect( $VCENTER ) -eq $true ) {
+if ( Connect( $VCENTER ) ) {
 
-    if ( ShutdownVMs( $VMS ) -eq $true ) {
-        Write-Host "[!] Restarting database server: $VMSDB."
-        Restart-VMGuest $VMSDB -Confirm:$false | Out-null
+    if ( ShutdownVMs( $VMS ) ) {
 
-        $COUNTER = 0
-
-        While ( ( Test-Port $VMSDB $SQL_PORT ) -and $COUNTER -le $TIMEOUT ) {
-            Write-Host "    Database listener still active, waiting 30 sec."
-            $COUNTER += 30
-            Sleep 30
-
-        }
-
-        if ( $COUNTER -le $TIMEOUT ) {
-            Write-Host "[!] Starting database server..."
-            $COUNTER = 0
-
-            While ( !( Test-Port $VMSDB $SQL_PORT ) -and $COUNTER -le $TIMEOUT ) {
-                Write-Host "    Database listener still inactive, waiting 30 sec."
-                $COUNTER += 30
-                Sleep 30
-
-            }
+        if ( RestartVMs( $VMSDB ) ) {
 
             if ( $COUNTER -le $TIMEOUT ) {
                 StartVMs( $VMS )
                 Write-Host "`n[!] Restart completed Succesfully"
 
             } else {
-                Write-Host "`n[X] The db listener has not been started in time."
+                Write-Host "[X] The db listener has not been started in time."
 
             }
-
-        } else {
-            Write-Host "`n[X] The db listener has not been stopped in time."
-
         }
 
-
     } else {
-        Write-Host "`n[X] The servers couldn't be stopped succesfully."
+        Write-Host "[X] The servers couldn't be stopped succesfully."
 
     }
 
 } else {
-    Write-Host "`n[X] Couldn't connect to vCenter Server: $VCENTER"
+    Write-Host "[X] Couldn't connect to vCenter Server: $VCENTER"
 
 }
