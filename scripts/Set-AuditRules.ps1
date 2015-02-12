@@ -1,10 +1,10 @@
 Import-Module ActiveDirectory
 
 <# Configuración del script #>
-$ROOT = "F:\BMUsrProfile"
-$AuditedGroup = "SG_BM_Audit_PersonalFiles"
+$ROOT = "X:\UsrProfile"
+$AuditedGroup = "SG_Audit_PersonalFiles"
 $AuditedUsers = Get-ADGroupMember $AuditedGroup | %{ $_.Name }
-$Domain = "BM"
+$Domain = "DOMAIN"
 $MyDocs = @()
 
 ForEach ($User in $AuditedUsers) {
