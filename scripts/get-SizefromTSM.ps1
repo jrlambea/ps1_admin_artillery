@@ -1,41 +1,43 @@
 <#
 Author Jose Ramón Lambea
 
-140205 Script to calculate the size of a folder from last
-       TSM backup.
+140205 Nuevo script.
+150505 Revisión.
 
 Usage:
-get-SizefromTSM.ps1 -p path [ -s yes/no ]
+get-SizefromTSM.ps1 -p path [ -s $true/$false ]
 
 #>
 
+[CmdletBinding()]
 Param(
     [parameter(Mandatory=$true)]
     [alias("p")]
-    [string]
-    $path,
+    [string]$Path,
     [parameter(Mandatory=$false)]
     [alias("s")]
-    [string]
-    $subdir = "no",
+    [switch]$Subdir,
     [parameter(Mandatory=$false)]
-    [alias("v")]
-    [string]
-    $vvv = $false)
+    [alias("x")]
+    [Int32]$Scale=1MB
+)
 
-function get-DirectorySize( $path ) {
+$TSMDir = "C:\Program Files\Tivoli\TSM\baclient\"
+function get-DirectorySize( $path )
+{
+
     if ( $path.Substring(0,2) -eq "\\" -And $path.IndexOf("$") -ne 0 )
     {
-        if ( $vvv -eq $true ) { Write-Host "Querying to TSM service..." }
+        Write-Verbose "Querying to TSM service... `'$TSMDir\dsmc.exe query backup `"$path\*`" -subdir=yes`'."
 
-        $p = Start-Process ".\dsmc.exe" -ArgumentList "query backup ""$path\*"" -subdir=yes " -Wait -NoNewWindow -RedirectStandardOutput $tmpFile
+        $p = Start-Process "$TSMDir\dsmc.exe" -ArgumentList "query backup `"$path\*`" -subdir=yes " -Wait -NoNewWindow -RedirectStandardOutput $tmpFile
         $p.HasExited
 
         $blank_line = 0
         $totalBytes = 0
         $regex      = new-object System.Text.RegularExpressions.Regex( "[0-9]  B" )
 
-        if ( $vvv -eq $true ) { Write-Host "Reading server answer..." }
+        Write-Verbose "Reading server answer..."
 
         Get-Content $tmpFile | % {
 
@@ -48,26 +50,23 @@ function get-DirectorySize( $path ) {
 
         }
 
-        $totalBytes = $(((${totalBytes}/1024)/1024)/1024).ToString("0.00")
-        "$totalBytes,${path}"
+        "" | Select-Object -Property @{n="Size";e={(${totalBytes}/$Scale).ToString("0.00")}},@{n="Path";e={$path}}
 
     }
-
 }
 
 
 $tsmFiles   = "dsm.opt","dsmc.exe"
 $tmpFile    = "$($env:temp)\tsmquery.txt"
 
-$tsmFiles | % {
-
-    if ( -not ( get-Item $_ ) )
+ForEach ( $File in $tsmFiles )
+{
+    if ( -not ( get-Item "$TSMDir$File" ) )
     {
-        if ( $vvv -eq $true ) { Write-Host "The file $_ doesn't exist." }
+        Write-Error "The file $File doesn't exist."
         Exit
 
     }
-
 }
 
 if ( $subdir ) {
