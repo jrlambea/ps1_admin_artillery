@@ -1,14 +1,15 @@
 <# 
     .Synopsis
-    CMDLET para items de un buzón de Exchange a otro.
+    CMDLET para items de un buzón de Exchange 2010 a otro.
     .Description
-    CMDLET para items de un buzón de Exchange a otro.
+    CMDLET para items de un buzón de Exchange 2010 a otro.
     .Parameter FromMailbox
     .Parameter ToMailbox
     .Example
         Search-MailboxItem.ps1 -FromMailbox OrigMailbox -ToMailbox DestMailbox
+    .Link
+	AQS: https://msdn.microsoft.com/en-us/library/aa965711%28v=vs.85%29.aspx
 #>
-<# AQS: https://msdn.microsoft.com/en-us/library/aa965711%28v=vs.85%29.aspx #>
 Param(
     [parameter( Position = 0, Mandatory = $true )]
     [alias( "f" )]
@@ -30,7 +31,7 @@ Function QueryForm {
     If ( $Value ) { $Query += " To:`"$Value`""; $Value = "" }
 
     $Value = Read-Host "Date"
-    If ( $Value ) { $Query += " Date:`"$Value`""; $Value = "" }
+    If ( $Value ) { $Query += " Sent:$Value"; $Value = "" }
 
     $Query
 
@@ -59,7 +60,7 @@ While ( $Select -eq 0 ) {
     if ($Select -eq 0 )
     {
 
-        $targetMailbox = Read-Host "A que buzon quieres recibir el informe?"
+        $targetMailbox = Read-Host "En que buzon quieres recibir el informe?"
         $Report = @{
             TargetMailbox = "$targetMailbox"
             TargetFolder = "Item_Results"
