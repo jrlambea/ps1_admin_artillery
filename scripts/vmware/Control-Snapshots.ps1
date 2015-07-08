@@ -39,7 +39,7 @@ if ( Connect( $VCENTER ) ) {
         }
     }
 
-otes    [String]$body = $snaps | Out-String
+    [String]$body = $snaps | Out-String
     $smtp = new-object Net.Mail.SmtpClient("$smtpServer")
     $smtp.Send("$emailFrom", "$mailAddresses", "$subject", $body)
 
