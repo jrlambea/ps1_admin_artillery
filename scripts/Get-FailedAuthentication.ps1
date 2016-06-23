@@ -15,16 +15,16 @@ Param(
 )
 
 # Avoid all errors
-$ErrorActionPreference = SilentlyContinue
+$ErrorActionPreference = "SilentlyContinue"
 
 # If the FromHoursAgo parameter isn't negative, do the conversion.
 If ($FromHoursAgo -gt 0) { $FromHoursAgo *= -1 }
 
 # EventId that means like "Error in authentication"
-$EventId = 529, 672, 675
+# $EventId = 529, 672, 675
 
 # Get all events with the EventId above
-$Events = Get-EventLog -LogName Security -ComputerName $DomainControllers -After (Get-Date).AddHours($FromHoursAgo) | ?{($_.EntryType -eq "FailureAudit") -And ($Id -contains $_.InstanceId)}
+$Events = Get-EventLog -LogName Security -ComputerName $DomainControllers -After (Get-Date).AddHours($FromHoursAgo) -EntryType "FailureAudit" -InstanceId 529, 672, 675
 
 # Parse all events and generate a custom object
 $Data = ForEach ($Event in $Events)
