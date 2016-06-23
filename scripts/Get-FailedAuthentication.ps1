@@ -11,7 +11,7 @@
 [CmdletBinding()]
 Param(
     [Parameter( Mandatory = $True, Position = 0)][Alias("s")][String[]]$DomainControllers,
-    [Parameter( Mandatory = $True, Position = 0)][Alias("h")][Int]$FromHoursAgo
+    [Parameter( Mandatory = $True, Position = 1)][Alias("h")][Int]$FromHoursAgo
 )
 
 # Avoid all errors
