@@ -1,3 +1,5 @@
 ## Onelines scripts
 ### CPU Commitment
-Get-VMHost | %{$CPU=$_ | Get-VM | Measure-Object -Sum NumCPU; "" | Select @"$($_.Name): Total:$($_.NumCPU) Commit:$($CPU.Sum/$_.NumCPU)"}
+```
+Get-VMHost | %{$Name=$_.Name;$HostCPU=$_.NumCPU;$CPU=$_ | Get-VM | Measure-Object -Sum NumCPU; "" | Select @{n="Name";e={$Name}}, @{n="HostCPU";e={$HostCPU}}, @{n="Commited";e={$CPU.Sum/$HostCPU}}}
+```
