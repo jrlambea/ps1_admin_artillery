@@ -2,6 +2,7 @@
 "Id;Name;Web;Telf;Poblacion;Direccion;Director;Fax;Email"
 ForEach ($i in 1..354)
 {
+    $Name="";$Web="";$Telf="";$Pobl="";$Dir="";$Director="";$email="";$Fax=""
     $Data=$WebClient.DownloadString("http://www.aehcos.es/alojamientos/ficha.asp?cat=0&mun=0&ord=ord_q&cod=0&pag=${i}")
     $Name=$Data.Split("`n")[601].Split(">")[1].Split("<")[0]
     $Web=($Data.Split("`n") | Select-String "Web:").Line.Split("`"")[3]
