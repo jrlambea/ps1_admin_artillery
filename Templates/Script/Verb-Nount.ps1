@@ -32,7 +32,7 @@ param
   [Parameter(Mandatory=$True, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='What computer name would you like to target?')]
   [Alias('host')]
   [ValidateLength(3,30)]
-  [string$computername,
+  [string]$computername,
   [string]$logname = 'errors.txt'
 )
 

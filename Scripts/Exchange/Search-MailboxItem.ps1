@@ -1,37 +1,40 @@
 <# 
     .Synopsis
-    CMDLET para items de un buzón de Exchange 2010 a otro.
+    Cmdlet to locate, copy or drop items from a MS Exchange mailbox.
     .Description
-    CMDLET para items de un buzón de Exchange 2010 a otro.
-    .Parameter FromMailbox
-    .Parameter ToMailbox
+    Cmdlet to locate, copy or drop items from a MS Exchange mailbox, it's a wizard for Search-Mailbox Exchange cmdlet.
+    .Parameter TargetMailbox
+    Mailbox which is target, the mailbox to poke around.
+    .Parameter ReportMailbox
+    Mailbox that has to receive the reports.
     .Example
-        Search-MailboxItem.ps1 -FromMailbox OrigMailbox -ToMailbox DestMailbox
+        Search-MailboxItem.ps1 -TargetMailbox OrigMailbox -ReportMailbox DestMailbox
     .Link
 	AQS: https://msdn.microsoft.com/en-us/library/aa965711%28v=vs.85%29.aspx
+    Blog: inceptor.me
 #>
 Param(
-    [parameter( Position = 0, Mandatory = $true )]
-    [alias( "f" )]
-    [String]$FromMailbox,
-    [parameter( Position = 1, Mandatory = $true )]
-    [alias( "t" )]
-    [String]$ToMailbox
+    [Parameter( Position = 0, Mandatory = $True )]
+    [Alias( "f" )]
+    [String]$TargetMailbox,
+    [Parameter( Position = 1, Mandatory = $True )]
+    [Alias( "t" )]
+    [String]$ReportMailbox
 )
 
 Function QueryForm {
 
     $Value = Read-Host "Subject"
-    If ( $Value ) { $Query += " Subject:`"$Value`""; $Value = "" }
+    If ( $Value ) { $Query += " Subject:`"${Value}`""; $Value = "" }
 
     $Value = Read-Host "From"
-    If ( $Value ) { $Query += " From:`"$Value`""; $Value = "" }
+    If ( $Value ) { $Query += " From:`"${Value}`""; $Value = "" }
 
     $Value = Read-Host "To"
-    If ( $Value ) { $Query += " To:`"$Value`""; $Value = "" }
+    If ( $Value ) { $Query += " To:`"${Value}`""; $Value = "" }
 
     $Value = Read-Host "Date"
-    If ( $Value ) { $Query += " Sent:$Value"; $Value = "" }
+    If ( $Value ) { $Query += " Sent:${Value}"; $Value = "" }
 
     $Query
 
@@ -41,8 +44,8 @@ $Select = 0
 
 While ( $Select -eq 0 ) {
 
-    $Options = [System.Management.Automation.Host.ChoiceDescription[]]("&Contactos", "&E-mail", "&Mensajeria instantanea", "C&itas", "&Tareas", "&Notas")
-    $Select = $host.ui.PromptForChoice("Tipo de seleccion", "Que tipo de elemento buscas?", $Options, 1)
+    $Options = [System.Management.Automation.Host.ChoiceDescription[]]("&Contacts", "&E-mail", "&IM", "&Meetings", "&Tasks", "&Notes")
+    $Select = $host.UI.PromptForChoice("Kind of item", "What kind of item are you searching?", $Options, 1)
 
     Switch( $Select )
     {
@@ -54,37 +57,46 @@ While ( $Select -eq 0 ) {
         5 { $Kind = "kind:notes" }
     }
 
-    $Options = [System.Management.Automation.Host.ChoiceDescription[]]("&Si", "&No")
-    $Select = $host.ui.PromptForChoice("Envio de informe", "Quieres recibir un informe?" , $Options, 0)
+    $Options = [System.Management.Automation.Host.ChoiceDescription[]]("&Yes", "&No")
+    $Select = $host.UI.PromptForChoice("Send report", "Do you want send a report?" , $Options, 0)
 
-    if ($Select -eq 0 )
+    If ($Select -eq 0 )
     {
-
-        $targetMailbox = Read-Host "En que buzon quieres recibir el informe?"
+        $TemporalRprtMailbox = Read-Host "To whitch mailbox you want send the report?"
         $Report = @{
-            TargetMailbox = "$targetMailbox"
+            TargetMailbox = "${TemporalRprtMailbox}"
             TargetFolder = "Item_Results"
             LogOnly = $True
             LogLevel = "Full"
         }
 
-    } else { $Report = @{ EstimateResultOnly = $True } }
+    }
+    
+    Else
+    {
+        $Report = @{ EstimateResultOnly = $True }
+    }
 
-    $Result = Search-Mailbox -Identity $FromMailbox -SearchQuery $Kind @Report
+    $Result = Search-Mailbox -Identity "${TargetMailbox}" -SearchQuery $Kind @Report
 
-    $Select = $host.ui.PromptForChoice("Se han encontrado " + $Result.ResultItemscount + " coincidencias. Modificar la busqueda", "Quieres modificar la busqueda?" , $Options, 1)
+    $Select = $host.UI.PromptForChoice("$($Result.ResultItemscount) matches has been found.", "Do you want modify the search parameters?" , $Options, 1)
 
 }
 
-if ($Result.ResultItemscount -gt 0 ) {
+If ($Result.ResultItemscount -gt 0 ) {
 
-    $Options = [System.Management.Automation.Host.ChoiceDescription[]]("&Ninguna", "&Copiar", "&Eliminar")
-    $Select = $host.ui.PromptForChoice("Accion a realizar", "Que accion quieres realizar con el/los item/s?" , $Options, 0)
+    $Options = [System.Management.Automation.Host.ChoiceDescription[]]("&Nothing", "&Copy", "&Remove")
+    $Select = $host.UI.PromptForChoice("Action to do", "What do you want to do with the selected items?" , $Options, 0)
 
     Switch( $Select )
     {
-        1 { Search-Mailbox -Identity $FromMailbox -SearchQuery $Kind -TargetMailbox "$ToMailbox" -TargetFolder "Item_Results" -LogLevel Full }
-        2 { Search-Mailbox -Identity $FromMailbox -SearchQuery $Kind -TargetMailbox "$ToMailbox" -TargetFolder "Item_Results" -LogLevel Full -DeleteContent }
+        1 { Search-Mailbox -Identity $TargetMailbox -SearchQuery $Kind -TargetMailbox "${ReportMailbox}" -TargetFolder "Item_Results" -LogLevel Full }
+        2 { Search-Mailbox -Identity $TargetMailbox -SearchQuery $Kind -TargetMailbox "${ReportMailbox}" -TargetFolder "Item_Results" -LogLevel Full -DeleteContent }
     }        
 
-} else { "Se han encontrado "+$Result.ResultItemscount+" coincidencias." }
+}
+
+Else 
+{ 
+    "$($Result.ResultItemscount) matches has been found."
+}
