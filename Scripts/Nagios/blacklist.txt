@@ -1,0 +1,7 @@
+example_file
+sppsvc
+clr_optimization_v4.0.30319_32
+clr_optimization_v4.0.30319_64
+gupdate
+swi_update_64
+vmware-converter-worker
