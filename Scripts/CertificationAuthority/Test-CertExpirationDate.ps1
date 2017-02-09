@@ -27,6 +27,7 @@ None
   170205 Fix: Filter the certificates by date with the certutil execution.
          Fix: Set "Days" parameter as uint32 instead of string.
          Add: Get-Help information.
+         Add: Set mail body as html.
 #>
 Param(
     [Parameter(Mandatory=$true)]
@@ -39,18 +40,22 @@ Param(
 [String]$MaxDate = (Get-Date).addDays($Days).ToString("dd/MM/yyyy")
 
 # Mail configuration
-[String]$EmailFrom 	= "controlcerts@domain"
+[String]$EmailFrom 	= "certreport@contoso.com"
 [String]$Subject = "Certificate control that expires in less than ${Days} days."
-[String]$SMTPServer = "smtp.server.domain"
+[String]$SMTPServer = "mailserver.contoso.com"
 
 # Create an object with the list of certificates, each column is a property of the object.
-$CertList = certutil -view -restrict "notafter<=${MaxDate},notafter>=$((Get-Date).ToString("dd/MM/yyyy"))" -out "RequestID,CommonName,NotAfter,Disposition" csv | Select-Object -Skip 1 | ConvertFrom-Csv -Header RequestID,CommonName,NotAfter,Disposition
+$CertList = certutil -view -restrict "Disposition=20,notafter<=${MaxDate},notafter>=$((Get-Date).ToString("dd/MM/yyyy"))" -out "RequestID,CommonName,NotAfter,Disposition" csv | Select-Object -Skip 1 | ConvertFrom-Csv -Header RequestID,CommonName,NotAfter,Disposition
 
 If ( $MailAddresses -ne "no" -And $CertList -ne $Null )
 {
-	[String]$Body = $CertList | Out-String
+	$Message = New-Object System.Net.Mail.MailMessage("${EmailFrom}", "${MailAddresses}")
+	$Message.Subject = "${Subject}"
+	$Message.IsBodyHtml = $True
+	$Message.Body = $CertList | ConvertTo-HTML
+	$Message.BodyEncoding = [System.Text.Encoding]::UTF8
 	$SMTP = New-Object Net.Mail.SmtpClient("$SMTPServer")
-	$SMTP.Send("$EmailFrom", "$MailAddresses", "$Subject", $Body)
+	$SMTP.Send($Message)
 }
 
 $CertList
