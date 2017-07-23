@@ -27,28 +27,29 @@ Outputs if any, otherwise state None - example: Log file stored in C:\Windows\Te
 #$ErrorActionPreference = "SilentlyContinue"
 
 [CmdletBinding(SupportsShouldProcess=$True,ConfirmImpact='Low')]
-param
+Param
 (
-  [Parameter(Mandatory=$True, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='What computer name would you like to target?')]
+  [Parameter(Mandatory=$False, ValueFromPipeline=$True, ValueFromPipelineByPropertyName=$True, HelpMessage='What computer name would you like to target?')]
   [Alias('host')]
   [ValidateLength(3,30)]
-  [string]$computername,
   [string]$logname = 'errors.txt'
 )
 
-begin
+Begin
 {
-  write-verbose "Deleting $logname"
-  del $logname -ErrorActionSilentlyContinue
+  Write-Verbose "Deleting $logname"
+  Remove-Item $logname -ErrorActionSilentlyContinue
 }
 
-process {
+Process
+{
 
-  write-verbose "Beginning process loop"
+  Write-Verbose "Beginning process loop"
 
-  foreach ($computer in $computername) {
+  ForEach ($computer In $computername)
+  {
     Write-Verbose "Processing $computer"
-    if ($pscmdlet.ShouldProcess($computer)) { <# use $computer here #> }
+    If ($pscmdlet.ShouldProcess($computer)) { <# use $computer here #> }
   }
-
+  
 }
