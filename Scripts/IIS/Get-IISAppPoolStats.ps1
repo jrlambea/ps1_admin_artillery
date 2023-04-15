@@ -28,7 +28,7 @@ if ((gwmi -namespace Root -Class __Namespace).Name -notcontains "WebAdministrati
 
 $app_pools = gwmi -Class Workerprocess -Namespace root/WebAdministration | Select AppPoolName, ProcessId
 
-if (-not (Test-Path $CSVFile)) { "DateTime;pool_pid;PagedMemory;" | Out-File $CSVFile }
+if (-not (Test-Path $CSVFile)) { "DateTime;pool_pid;PagedMemory;CPU;" | Out-File $CSVFile }
 
 foreach ($app_pool in $app_pools) {
 	$pool_pid = $app_pool.ProcessId
